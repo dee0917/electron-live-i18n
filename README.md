@@ -137,6 +137,32 @@ payload with `eli serve --extra-js original.js`. That is what the loader indirec
 - **Silent truncation** — the free translate endpoint quietly cuts long input. Text is split on paragraph/sentence boundaries and stitched back together.
 - **Self-translation loops** — pass `--skip` selectors for your own injected UI so it does not translate itself.
 
+## Use it from an AI agent (MCP)
+
+`eli mcp` speaks the Model Context Protocol over stdio, so an assistant can inspect a
+bundle, patch it, translate strings or locale files and revert — all without you leaving
+the chat.
+
+```json
+{
+  "mcpServers": {
+    "electron-live-i18n": {
+      "type": "stdio",
+      "command": "eli",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Tools exposed: `inspect_app`, `patch_app`, `revert_app`, `translate_text`,
+`translate_locale_file`.
+
+Example conversation:
+
+> **You:** This app's menu is in English, make it Traditional Chinese.
+> **Agent:** *(inspect_app → picks a 7 KB non-critical bundle → patch_app → tells you to restart)*
+
 ## Locale files on disk
 
 ```bash

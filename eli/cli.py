@@ -90,6 +90,11 @@ def cmd_locales(a):
     print(json.dumps(translate_json_file(a.src, a.dst, tr), ensure_ascii=False, indent=2))
 
 
+def cmd_mcp(a):
+    from .mcp_server import main as mcp_main
+    mcp_main()
+
+
 def cmd_tr(a):
     tr = Translator(target=a.target, cache_path=a.dict + ".cache")
     print(tr.translate(a.text))
@@ -136,6 +141,9 @@ def main(argv=None):
     p.add_argument("--target", default="zh-TW")
     p.add_argument("--dict", default="eli-dict.json")
     p.set_defaults(func=cmd_locales)
+
+    p = sub.add_parser("mcp", help="run as an MCP server over stdio (for AI agents)")
+    p.set_defaults(func=cmd_mcp)
 
     p = sub.add_parser("tr", help="translate one string (handy for testing)")
     p.add_argument("text")

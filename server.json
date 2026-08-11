@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.dee0917/electron-live-i18n",
+  "description": "Inspect, patch and live-translate packaged Electron apps: asar loader injection plus key-less translation of UI strings and JSON locale files.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/dee0917/electron-live-i18n",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "electron-live-i18n",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeHint": "uvx",
+      "runtimeArguments": [
+        {
+          "type": "positional",
+          "value": "eli"
+        },
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}
