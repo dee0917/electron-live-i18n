@@ -1,0 +1,8 @@
+eli-dict.json
+eli-dict.json.cache
+eli-backups/
+__pycache__/
+*.pyc
+dist/
+build/
+*.egg-info/
