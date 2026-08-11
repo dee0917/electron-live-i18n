@@ -15,6 +15,53 @@ the app bundle again — iterate on the translation layer and press ⌘R.
 app.asar ──(loader stub)──► http://127.0.0.1:7799/payload.js ──► DOM sweeper + dictionary
 ```
 
+## Demo
+
+```console
+$ eli inspect "/Applications/Some App.app"
+archive : /Applications/Some App.app/Contents/Resources/app.asar
+header  : 161743 bytes, data starts at 161760
+plist   : /Applications/Some App.app/Contents/Info.plist
+largest front-end entries (good loader slots):
+    1284231  dist/assets/index-abc123.js
+       7020  dist/vendor-analytics.js
+        601  dist/index.html
+
+$ eli serve --target zh-TW --dict ./mydict.json &
+electron-live-i18n serving on http://127.0.0.1:7799 (dict: ./mydict.json)
+
+$ eli patch "/Applications/Some App.app" --entry dist/vendor-analytics.js
+{
+  "patched": {
+    "entry": "dist/vendor-analytics.js",
+    "slot_size": 7020,
+    "payload": 905,
+    "file_hash": "401f5f19...",
+    "header_hash": "6dc99001..."
+  },
+  "backups": [
+    "./eli-backups/app.asar.bak-20260812-021132",
+    "./eli-backups/Info.plist.bak-20260812-021132"
+  ]
+}
+
+Restart the app. It will now pull the translation layer from http://127.0.0.1:7799/payload.js
+```
+
+After the restart, English UI text is replaced as it appears, and every new string
+lands in `mydict.json`:
+
+```console
+$ cat mydict.json
+{
+  "Manager will assign tasks to the right agents.": "主管會把任務分派給對的員工。",
+  "Send a message to get started": "傳個訊息開始吧",
+  "Settings saved successfully": "設定儲存成功"
+}
+```
+
+Changed your mind about a translation? Edit that file and press ⌘R in the app.
+
 ## Why not just edit the locale files?
 
 - Many Electron apps hard-code English in JSX/TSX; there is no locale file to edit.
