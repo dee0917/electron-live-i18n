@@ -10,6 +10,7 @@ import sys
 from . import __version__
 from .asar import backup, patch_entry, read_entry, read_header, restore, AsarError
 from .locales import translate_json_file
+from .markdown import translate_markdown
 from .server import serve
 from .translate import Translator
 
@@ -17,14 +18,40 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def _resolve_bundle(app: str) -> tuple[str, str | None]:
-    """Accept either an .app bundle (macOS) or a direct path to app.asar."""
+    """Locate app.asar for macOS / Windows / Linux, plus Info.plist when present.
+
+    Accepts any of:
+      * a direct path to app.asar
+      * macOS   ``/Applications/Foo.app``          -> Contents/Resources/app.asar
+      * Windows ``C:\\Users\\me\\AppData\\Local\\Foo``  -> resources/app.asar
+                (also ``Foo/app-1.2.3/resources/app.asar`` as produced by Squirrel)
+      * Linux   ``/opt/Foo``                        -> resources/app.asar
+    """
     if app.endswith(".asar"):
         return app, None
-    asar = os.path.join(app, "Contents", "Resources", "app.asar")
-    plist = os.path.join(app, "Contents", "Info.plist")
-    if os.path.exists(asar):
-        return asar, (plist if os.path.exists(plist) else None)
-    raise SystemExit(f"could not find app.asar under {app}")
+
+    mac_asar = os.path.join(app, "Contents", "Resources", "app.asar")
+    mac_plist = os.path.join(app, "Contents", "Info.plist")
+    if os.path.exists(mac_asar):
+        return mac_asar, (mac_plist if os.path.exists(mac_plist) else None)
+
+    # Windows / Linux layout, including Squirrel's app-<version> folders
+    candidates = [os.path.join(app, "resources", "app.asar")]
+    try:
+        for name in sorted(os.listdir(app), reverse=True):
+            if name.startswith("app-"):
+                candidates.append(os.path.join(app, name, "resources", "app.asar"))
+    except OSError:
+        pass
+    for cand in candidates:
+        if os.path.exists(cand):
+            return cand, None
+
+    raise SystemExit(
+        f"could not find app.asar under {app}\n"
+        "tried: Contents/Resources/app.asar (macOS), resources/app.asar (Windows/Linux), "
+        "app-*/resources/app.asar (Squirrel)"
+    )
 
 
 def cmd_inspect(a):
@@ -90,6 +117,11 @@ def cmd_locales(a):
     print(json.dumps(translate_json_file(a.src, a.dst, tr), ensure_ascii=False, indent=2))
 
 
+def cmd_md(a):
+    tr = Translator(target=a.target, cache_path=a.dict + ".cache")
+    print(json.dumps(translate_markdown(a.src, a.dst, tr), ensure_ascii=False, indent=2))
+
+
 def cmd_mcp(a):
     from .mcp_server import main as mcp_main
     mcp_main()
@@ -142,6 +174,13 @@ def main(argv=None):
     p.add_argument("--dict", default="eli-dict.json")
     p.set_defaults(func=cmd_locales)
 
+    p = sub.add_parser("md", help="translate a Markdown file, keeping code blocks and links intact")
+    p.add_argument("src")
+    p.add_argument("dst")
+    p.add_argument("--target", default="zh-TW")
+    p.add_argument("--dict", default="eli-dict.json")
+    p.set_defaults(func=cmd_md)
+
     p = sub.add_parser("mcp", help="run as an MCP server over stdio (for AI agents)")
     p.set_defaults(func=cmd_mcp)
 
@@ -152,7 +191,10 @@ def main(argv=None):
     p.set_defaults(func=cmd_tr)
 
     a = ap.parse_args(argv)
-    return a.func(a)
+    try:
+        return a.func(a)
+    except AsarError as e:
+        raise SystemExit(f"error: {e}")
 
 
 if __name__ == "__main__":

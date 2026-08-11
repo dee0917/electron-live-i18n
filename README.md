@@ -1,5 +1,9 @@
 # electron-live-i18n
 
+> [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Português](README.pt-BR.md) | [Русский](README.ru.md)
+>
+> *Translations below were produced by this tool itself (`eli locales` / `eli tr`) and lightly reviewed. PRs welcome if a phrase reads wrong in your language.*
+
 Live-translate **any packaged Electron app** — no rebuild, no source code, no API key.
 
 Most i18n tooling assumes you own the app and can edit its locale files. This one is for
@@ -119,6 +123,32 @@ of the way in seconds; fix the awkward ten strings by hand and they stay fixed.
 }
 ```
 
+## Let an AI agent do it for you
+
+If you use an assistant that can run commands and edit files on your machine — Claude Code,
+Cursor, Codex CLI, Cline, Windsurf, Copilot CLI — paste this and it will handle the whole
+flow, including picking the entry to patch:
+
+```text
+Install and use https://github.com/dee0917/electron-live-i18n to translate the UI of
+"<APP PATH>" into <LANGUAGE>.
+
+Steps:
+1. pipx install electron-live-i18n   (or: pip install electron-live-i18n)
+2. Run `eli inspect "<APP PATH>"` and pick a front-end .js entry that is large enough
+   (> 1 KB) and non-critical — analytics/vendor bundles are ideal. Tell me which one you
+   picked and why.
+3. Start `eli serve --target <LANG CODE> --dict ./mydict.json` in the background.
+4. Run `eli patch "<APP PATH>" --entry <THE ENTRY>`, then restart the app.
+5. Confirm the backups exist, and remind me that `eli revert "<APP PATH>"` undoes everything.
+```
+
+Replace `<APP PATH>` (e.g. `/Applications/Slack.app`, `C:\Users\me\AppData\Local\Slack`),
+`<LANGUAGE>` and `<LANG CODE>` (`zh-TW`, `zh-CN`, `ja`, `ko`, `es`, `fr`, `de`, `pt`, `ru`, ...).
+
+Or wire it up as an MCP server (see below) and just say
+*"translate this app's UI into Japanese"*.
+
 ## Choosing an entry to patch
 
 `eli inspect` lists front-end entries by size. Pick one that is:
@@ -129,6 +159,21 @@ of the way in seconds; fix the awkward ten strings by hand and they stay fixed.
 
 If you want to keep the original code, host it from your own server and append it to the
 payload with `eli serve --extra-js original.js`. That is what the loader indirection is for.
+
+## Platforms
+
+| OS | Bundle layout it looks for | Integrity fixup |
+| --- | --- | --- |
+| macOS | `Foo.app/Contents/Resources/app.asar` | archive header hash **and** `ElectronAsarIntegrity` in `Info.plist` |
+| Windows | `Foo\resources\app.asar`, plus Squirrel's `Foo\app-1.2.3\resources\app.asar` | archive header hash |
+| Linux | `/opt/Foo/resources/app.asar` | archive header hash |
+
+You can always pass the `app.asar` path directly instead of the bundle folder.
+
+Windows notes: run the shell as the user who owns the install directory (per-user installs
+under `%LOCALAPPDATA%` need no elevation; `Program Files` does). Squirrel-based apps create
+a new `app-<version>` folder on update, so re-run `eli patch` after an upgrade — the
+dictionary and the local server are untouched.
 
 ## Gotchas this project already solved
 
@@ -172,6 +217,15 @@ eli locales locales/en.json locales/zh-TW.json --target zh-TW
 Only untranslated strings are sent; existing translations in the destination file win, so
 your manual fixes survive re-runs. Writes are atomic (tmp file + `os.replace`).
 
+## Translating whole Markdown docs
+
+```bash
+eli md README.md README.ja.md --target ja
+```
+
+Code blocks, inline code, URLs and table rules are preserved; only prose is translated.
+The localized READMEs in this repo were produced this way.
+
 ## Library use
 
 ```python
@@ -186,8 +240,8 @@ header, header_str, size, base = read_header("/path/to/app.asar")
 
 ## Scope and honesty
 
-- macOS is what this is tested on. Linux/Windows Electron bundles use the same asar layout;
-  the `Info.plist` step simply does not apply, and code signing is not re-validated the same way.
+- Developed and tested on macOS. Windows and Linux bundles use the same asar layout and are
+  supported (see Platforms); the `Info.plist` step simply does not apply there.
 - Patching a signed bundle invalidates its signature. On macOS an ad-hoc/unsigned app keeps
   working; a hardened, notarized app may refuse to launch. Test, and keep the backup.
 - This is a tool for **your own machine and your own copy** of an app. Respect the licence

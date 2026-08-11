@@ -35,8 +35,14 @@ def read_header(asar_path: str) -> tuple[dict[str, Any], str, int, int]:
         if len(head) < 16:
             raise AsarError("not an asar file (too short)")
         _, size2, _, size4 = struct.unpack("<4I", head)
-        header_str = f.read(size4).decode("utf-8")
-    return json.loads(header_str), header_str, size4, 8 + size2
+        if not (0 < size4 < 64 * 1024 * 1024):
+            raise AsarError("not an asar archive (implausible header size)")
+        try:
+            header_str = f.read(size4).decode("utf-8")
+            header = json.loads(header_str)
+        except (UnicodeDecodeError, ValueError) as e:
+            raise AsarError(f"not an asar archive (header is not valid JSON: {e})")
+    return header, header_str, size4, 8 + size2
 
 
 def find_entry(header: dict[str, Any], rel_path: str) -> dict[str, Any]:

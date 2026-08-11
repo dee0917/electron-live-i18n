@@ -86,13 +86,12 @@ TOOLS = [
 
 
 def _resolve(app: str):
-    if app.endswith(".asar"):
-        return app, None
-    asar = os.path.join(app, "Contents", "Resources", "app.asar")
-    plist = os.path.join(app, "Contents", "Info.plist")
-    if not os.path.exists(asar):
-        raise AsarError(f"no app.asar under {app}")
-    return asar, (plist if os.path.exists(plist) else None)
+    """Same multi-platform lookup as the CLI (macOS / Windows / Linux / Squirrel)."""
+    from .cli import _resolve_bundle
+    try:
+        return _resolve_bundle(app)
+    except SystemExit as e:
+        raise AsarError(str(e))
 
 
 def _entries(app: str):
